@@ -2,9 +2,9 @@
 
 namespace App
 {
-    public class CalendarEntry
+    public class Reservation
     {
-        public CalendarEntry(string id,
+        public Reservation(string id,
             string calendarId,
             DateTime begin,
             DateTime end)

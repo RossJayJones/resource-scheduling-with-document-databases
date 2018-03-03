@@ -6,27 +6,27 @@ namespace App
 {
     public class Calendar
     {
-        public Calendar(string id, CalendarBounds bounds, IEnumerable<CalendarEntry> entries) : this(id, bounds)
+        public Calendar(string id, CalendarBounds bounds, IEnumerable<Reservation> entries) : this(id, bounds)
         {
-            Entries = entries.ToList();
+            Reservations = entries.ToList();
         }
 
         public Calendar(string id, CalendarBounds bounds)
         {
             Id = id;
             Bounds = bounds;
-            Entries = new List<CalendarEntry>();
+            Reservations = new List<Reservation>();
         }
 
         public string Id { get; set; }
 
         public CalendarBounds Bounds { get; }
 
-        public List<CalendarEntry> Entries { get; set; }
+        public List<Reservation> Reservations { get; set; }
 
         public bool IsAvailable(DateTime begin, DateTime end)
         {
-            var entries = Entries.Where(x => x.Begin < end && begin < x.End);
+            var entries = Reservations.Where(x => x.Begin < end && begin < x.End);
             return !entries.Any();
         }
 
@@ -42,15 +42,15 @@ namespace App
                 throw new CalendarException($"Entry {begin} - {end} is not available");
             }
 
-            var entry = new CalendarEntry(id, Id, begin, end);
-            Entries.Add(entry);
+            var entry = new Reservation(id, Id, begin, end);
+            Reservations.Add(entry);
         }
 
         public void Cancel(string id)
         {
-            foreach (var entry in Entries.Where(x => x.Id == id).ToList())
+            foreach (var entry in Reservations.Where(x => x.Id == id).ToList())
             {
-                Entries.Remove(entry);
+                Reservations.Remove(entry);
             }
         }
     }

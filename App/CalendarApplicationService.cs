@@ -33,7 +33,7 @@ namespace App
 
         public Calendar Get(string id, DateTime begin, DateTime end)
         {
-            var entries = new List<CalendarEntry>();
+            var entries = new List<Reservation>();
             var chunks = _session.Load<CalendarChunk>(CalendarChunkHelper.CreateChunkIds(id, begin, end))
                 .Values.Where(x => x != null).SelectMany(x => x.Entries).ToList();
 
@@ -41,7 +41,7 @@ namespace App
             {
                 var firstChunk = groupedChunks.First();
                 var lastChunk = groupedChunks.Last();
-                var entry = new CalendarEntry(groupedChunks.Key, id, firstChunk.Begin, lastChunk.End);
+                var entry = new Reservation(groupedChunks.Key, id, firstChunk.Begin, lastChunk.End);
                 entries.Add(entry);
             }
 
@@ -50,16 +50,16 @@ namespace App
 
         private class CalendarChunkHelper
         {
-            private readonly CalendarEntry _entry;
+            private readonly Reservation _entry;
 
-            private CalendarChunkHelper(CalendarEntry entry)
+            private CalendarChunkHelper(Reservation entry)
             {
                 _entry = entry;
             }
 
             public static IEnumerable<CalendarChunk> SplitIntoChunks(Calendar calendar)
             {
-                return calendar.Entries.Select(entry => new CalendarChunkHelper(entry))
+                return calendar.Reservations.Select(entry => new CalendarChunkHelper(entry))
                     .SelectMany(helper => helper.SplitIntoChunks()).GroupBy(x => x.Id).Select(entry => new CalendarChunk(entry.Key, entry.ToList()));
             }
 
