@@ -30,7 +30,7 @@ namespace App
             return !entries.Any();
         }
 
-        public void Reserve(string id, DateTime begin, DateTime end)
+        public void Reserve(string reservationId, DateTime begin, DateTime end)
         {
             if (!Bounds.IsWithinBounds(begin, end))
             {
@@ -42,13 +42,13 @@ namespace App
                 throw new CalendarException($"Entry {begin} - {end} is not available");
             }
 
-            var entry = new Reservation(id, Id, begin, end);
+            var entry = new Reservation(reservationId, Id, begin, end);
             Reservations.Add(entry);
         }
 
-        public void Cancel(string id)
+        public void Cancel(string reservationId)
         {
-            foreach (var entry in Reservations.Where(x => x.Id == id).ToList())
+            foreach (var entry in Reservations.Where(x => x.Id == reservationId).ToList())
             {
                 Reservations.Remove(entry);
             }
