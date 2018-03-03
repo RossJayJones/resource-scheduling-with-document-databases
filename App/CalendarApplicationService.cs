@@ -5,16 +5,16 @@ using Raven.Client.Documents.Session;
 
 namespace App
 {
-    public class CalendarFactory
+    public class CalendarApplicationService
     {
         private readonly IDocumentSession _session;
 
-        public CalendarFactory(IDocumentSession session)
+        public CalendarApplicationService(IDocumentSession session)
         {
             _session = session;
         }
 
-        public void Store(Calendar calendar)
+        public void Update(Calendar calendar)
         {
             var days = CalendarChunkHelper.SplitIntoChunks(calendar).ToList();
             var exisiting = _session.Load<CalendarChunk>(days.Select(x => x.Id));
