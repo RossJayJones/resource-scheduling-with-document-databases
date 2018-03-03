@@ -1,57 +1,69 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using LiteDB;
+using Raven.Client.Documents.Session;
 
 namespace App
 {
-    public class CalendarStorage
+    public class CalendarFactory
     {
-        private readonly LiteCollection<CalendarDay> _collection;
+        private readonly IDocumentSession _session;
 
-        public CalendarStorage(LiteCollection<CalendarDay> collection)
+        public CalendarFactory(IDocumentSession session)
         {
-            _collection = collection;
+            _session = session;
         }
 
         public void Store(Calendar calendar)
         {
-            foreach (var calendarDay in CalendarDayHelper.Slice(calendar))
+            var days = CalendarChunkHelper.SplitIntoChunks(calendar).ToList();
+            var exisiting = _session.Load<CalendarChunk>(days.Select(x => x.Id));
+            foreach (var calendarDay in days)
             {
-                _collection.Upsert(calendarDay.Id, calendarDay);
+                if (exisiting.ContainsKey(calendarDay.Id) && exisiting[calendarDay.Id] != null)
+                {
+                    exisiting[calendarDay.Id].Update(calendarDay.Entries);
+                }
+                else
+                {
+                    _session.Store(calendarDay);
+                }
             }
         }
 
         public Calendar Get(string id, DateTime begin, DateTime end)
         {
             var entries = new List<CalendarEntry>();
-            var slices = CalendarDayHelper.ResolveSliceIds(id, begin, end).Where(x => x != null)
-                .Select(x => _collection.FindById(x)).Where(x => x != null).SelectMany(x => x.Slices).ToList();
+            var chunks = _session.Load<CalendarChunk>(CalendarChunkHelper.CreateChunkIds(id, begin, end))
+                .Values.Where(x => x != null).SelectMany(x => x.Entries).ToList();
 
-            foreach (var slice in slices.GroupBy(x => x.CalendarEntryId))
+            foreach (var groupedChunks in chunks.GroupBy(x => x.CalendarEntryId))
             {
-                var entry = new CalendarEntry(slice.Key, id, slice.First().Begin, slice.Last().End);
+                var firstChunk = groupedChunks.First();
+                var lastChunk = groupedChunks.Last();
+                var entry = new CalendarEntry(groupedChunks.Key, id, firstChunk.Begin, lastChunk.End);
                 entries.Add(entry);
             }
 
             return new Calendar(id, new CalendarBounds(begin, end), entries);
         }
 
-        private class CalendarDayHelper
+        private class CalendarChunkHelper
         {
             private readonly CalendarEntry _entry;
 
-            private CalendarDayHelper(CalendarEntry entry)
+            private CalendarChunkHelper(CalendarEntry entry)
             {
                 _entry = entry;
             }
 
-            public static IEnumerable<CalendarDay> Slice(Calendar calendar)
+            public static IEnumerable<CalendarChunk> SplitIntoChunks(Calendar calendar)
             {
-                return calendar.Entries.Select(x => new CalendarDayHelper(x)).SelectMany(x => x.Slice()).GroupBy(x => x.Id).Select(x => new CalendarDay(x.Key, x.ToList()));
+                return calendar.Entries.Select(entry => new CalendarChunkHelper(entry))
+                    .SelectMany(helper => helper.SplitIntoChunks()).GroupBy(x => x.Id).Select(entry => new CalendarChunk(entry.Key, entry.ToList()));
             }
 
-            public static IEnumerable<string> ResolveSliceIds(string id, DateTime begin, DateTime end)
+            public static IEnumerable<string> CreateChunkIds(string id, DateTime begin, DateTime end)
             {
                 var ids = new List<string>();
                 while (begin <= end)
@@ -63,15 +75,15 @@ namespace App
                 return ids;
             }
 
-            private IEnumerable<CalendarDayEntry> Slice()
+            private IEnumerable<CalendarChunkEntry> SplitIntoChunks()
             {
-                var slices = new List<CalendarDayEntry>();
+                var slices = new List<CalendarChunkEntry>();
                 var begin = _entry.Begin.Date;
                 var end = _entry.End.Date;
 
                 while (begin <= end)
                 {
-                    var slice = new CalendarDayEntry
+                    var slice = new CalendarChunkEntry
                     {
                         Id = $"{_entry.CalendarId}-{begin.Year}-{begin.Month}-{begin.Day}",
                         Begin = Max(begin, _entry.Begin),

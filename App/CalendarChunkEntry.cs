@@ -2,7 +2,7 @@
 
 namespace App
 {
-    public class CalendarDayEntry
+    public class CalendarChunkEntry
     {
         public string Id { get; set; }
         public DateTime Begin { get; set; }
