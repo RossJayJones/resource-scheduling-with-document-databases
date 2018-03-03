@@ -50,11 +50,11 @@ namespace App
 
         private class CalendarChunkHelper
         {
-            private readonly Reservation _entry;
+            private readonly Reservation _reservation;
 
-            private CalendarChunkHelper(Reservation entry)
+            private CalendarChunkHelper(Reservation reservation)
             {
-                _entry = entry;
+                _reservation = reservation;
             }
 
             public static IEnumerable<CalendarChunk> SplitIntoChunks(Calendar calendar)
@@ -68,9 +68,9 @@ namespace App
                 var ids = new List<string>();
                 while (begin <= end)
                 {
-                    var sliceId = $"{id}-{begin.Year}-{begin.Month}-{begin.Day}";
+                    var chunkId = $"{id}-{begin.Year}-{begin.Month}-{begin.Day}";
                     begin = begin.AddDays(1);
-                    ids.Add(sliceId);
+                    ids.Add(chunkId);
                 }
                 return ids;
             }
@@ -78,17 +78,17 @@ namespace App
             private IEnumerable<CalendarChunkEntry> SplitIntoChunks()
             {
                 var slices = new List<CalendarChunkEntry>();
-                var begin = _entry.Begin.Date;
-                var end = _entry.End.Date;
+                var begin = _reservation.Begin.Date;
+                var end = _reservation.End.Date;
 
                 while (begin <= end)
                 {
                     var slice = new CalendarChunkEntry
                     {
-                        Id = $"{_entry.CalendarId}-{begin.Year}-{begin.Month}-{begin.Day}",
-                        Begin = Max(begin, _entry.Begin),
-                        End = Min(begin.AddHours(23).AddMinutes(59).AddSeconds(59), _entry.End),
-                        CalendarEntryId = _entry.Id
+                        Id = $"{_reservation.CalendarId}-{begin.Year}-{begin.Month}-{begin.Day}",
+                        Begin = Max(begin, _reservation.Begin),
+                        End = Min(begin.AddHours(23).AddMinutes(59).AddSeconds(59), _reservation.End),
+                        CalendarEntryId = _reservation.Id
                     };
                     slices.Add(slice);
                     begin = begin.AddDays(1);
